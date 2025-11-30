@@ -1,56 +1,71 @@
-import React, { useState } from 'react';
-import { AlertCircle, CheckCircle, XCircle, MinusCircle } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XML Comparison Tool</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+    const { AlertCircle, CheckCircle, XCircle, MinusCircle } = lucide;
 
-export default function XMLComparison() {
-  const [xml1, setXml1] = useState('');
-  const [xml2, setXml2] = useState('');
-  const [results, setResults] = useState([]);
-  const [error, setError] = useState('');
-  const [dragOver1, setDragOver1] = useState(false);
-  const [dragOver2, setDragOver2] = useState(false);
+    function XMLComparison() {
+      const [xml1, setXml1] = useState('');
+      const [xml2, setXml2] = useState('');
+      const [results, setResults] = useState([]);
+      const [error, setError] = useState('');
+      const [dragOver1, setDragOver1] = useState(false);
+      const [dragOver2, setDragOver2] = useState(false);
 
-  const handleDrop = (e, setXml) => {
-    e.preventDefault();
-    setDragOver1(false);
-    setDragOver2(false);
-    
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setXml(event.target.result);
+      const handleDrop = (e, setXml) => {
+        e.preventDefault();
+        setDragOver1(false);
+        setDragOver2(false);
+        
+        const file = e.dataTransfer.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            setXml(event.target.result);
+          };
+          reader.readAsText(file);
+        }
       };
-      reader.readAsText(file);
-    }
-  };
 
-  const handleDragOver = (e) => {
-    e.preventDefault();
-  };
-
-  const handleDragEnter = (e, setDragState) => {
-    e.preventDefault();
-    setDragState(true);
-  };
-
-  const handleDragLeave = (e, setDragState) => {
-    e.preventDefault();
-    setDragState(false);
-  };
-
-  const handleFileSelect = (e, setXml) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setXml(event.target.result);
+      const handleDragOver = (e) => {
+        e.preventDefault();
       };
-      reader.readAsText(file);
-    }
-  };
 
-  const loadSampleData = () => {
-    const sample1 = `<?xml version="1.0" encoding="UTF-8"?>
+      const handleDragEnter = (e, setDragState) => {
+        e.preventDefault();
+        setDragState(true);
+      };
+
+      const handleDragLeave = (e, setDragState) => {
+        e.preventDefault();
+        setDragState(false);
+      };
+
+      const handleFileSelect = (e, setXml) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            setXml(event.target.result);
+          };
+          reader.readAsText(file);
+        }
+      };
+
+      const loadSampleData = () => {
+        const sample1 = `<?xml version="1.0" encoding="UTF-8"?>
 <catalog>
   <book id="bk101">
     <author>Gambardella, Matthew</author>
@@ -78,7 +93,7 @@ export default function XMLComparison() {
   </book>
 </catalog>`;
 
-    const sample2 = `<?xml version="1.0" encoding="UTF-8"?>
+        const sample2 = `<?xml version="1.0" encoding="UTF-8"?>
 <catalog>
   <book id="bk101">
     <author>Gambardella, Matthew</author>
@@ -106,326 +121,332 @@ export default function XMLComparison() {
   </book>
 </catalog>`;
 
-    setXml1(sample1);
-    setXml2(sample2);
-    setResults([]);
-    setError('');
-  };
+        setXml1(sample1);
+        setXml2(sample2);
+        setResults([]);
+        setError('');
+      };
 
-  const parseXML = (xmlString) => {
-    const parser = new DOMParser();
-    const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
-    
-    const parseError = xmlDoc.querySelector('parsererror');
-    if (parseError) {
-      throw new Error('Invalid XML format');
-    }
-    
-    return xmlDoc;
-  };
-
-  const extractElements = (node, path = '') => {
-    const elements = [];
-    
-    if (node.nodeType === 1) {
-      const currentPath = path ? `${path}/${node.nodeName}` : node.nodeName;
-      const textContent = Array.from(node.childNodes)
-        .filter((child) => child.nodeType === 3)
-        .map((child) => child.nodeValue.trim())
-        .filter((text) => text.length > 0)
-        .join(' ');
-      
-      elements.push({
-        path: currentPath,
-        name: node.nodeName,
-        value: textContent,
-        attributes: Array.from(node.attributes || []).reduce((acc, attr) => {
-          acc[attr.name] = attr.value;
-          return acc;
-        }, {})
-      });
-      
-      Array.from(node.children).forEach((child) => {
-        elements.push(...extractElements(child, currentPath));
-      });
-    }
-    
-    return elements;
-  };
-
-  const compareXML = () => {
-    setError('');
-    setResults([]);
-    
-    try {
-      if (!xml1.trim() || !xml2.trim()) {
-        setError('Please enter XML content in both fields');
-        return;
-      }
-      
-      const doc1 = parseXML(xml1);
-      const doc2 = parseXML(xml2);
-      
-      const elements1 = extractElements(doc1.documentElement);
-      const elements2 = extractElements(doc2.documentElement);
-      
-      const comparisonResults = [];
-      const paths1 = new Set(elements1.map((e) => e.path));
-      const paths2 = new Set(elements2.map((e) => e.path));
-      
-      elements1.forEach((elem1) => {
-        const elem2 = elements2.find((e) => e.path === elem1.path);
+      const parseXML = (xmlString) => {
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlString, 'text/xml');
         
-        if (!elem2) {
-          comparisonResults.push({
-            path: elem1.path,
-            status: 'missing-in-xml2',
-            xml1Value: elem1.value || JSON.stringify(elem1.attributes),
-            xml2Value: '-',
-            message: 'Present in XML 1 only'
-          });
-        } else {
-          const value1 = elem1.value || JSON.stringify(elem1.attributes);
-          const value2 = elem2.value || JSON.stringify(elem2.attributes);
+        const parseError = xmlDoc.querySelector('parsererror');
+        if (parseError) {
+          throw new Error('Invalid XML format');
+        }
+        
+        return xmlDoc;
+      };
+
+      const extractElements = (node, path = '') => {
+        const elements = [];
+        
+        if (node.nodeType === 1) {
+          const currentPath = path ? `${path}/${node.nodeName}` : node.nodeName;
+          const textContent = Array.from(node.childNodes)
+            .filter((child) => child.nodeType === 3)
+            .map((child) => child.nodeValue.trim())
+            .filter((text) => text.length > 0)
+            .join(' ');
           
-          if (value1 === value2) {
-            comparisonResults.push({
-              path: elem1.path,
-              status: 'match',
-              xml1Value: value1,
-              xml2Value: value2,
-              message: 'Match'
-            });
-          } else {
-            comparisonResults.push({
-              path: elem1.path,
-              status: 'different',
-              xml1Value: value1,
-              xml2Value: value2,
-              message: 'Different values'
-            });
+          elements.push({
+            path: currentPath,
+            name: node.nodeName,
+            value: textContent,
+            attributes: Array.from(node.attributes || []).reduce((acc, attr) => {
+              acc[attr.name] = attr.value;
+              return acc;
+            }, {})
+          });
+          
+          Array.from(node.children).forEach((child) => {
+            elements.push(...extractElements(child, currentPath));
+          });
+        }
+        
+        return elements;
+      };
+
+      const compareXML = () => {
+        setError('');
+        setResults([]);
+        
+        try {
+          if (!xml1.trim() || !xml2.trim()) {
+            setError('Please enter XML content in both fields');
+            return;
           }
-        }
-      });
-      
-      elements2.forEach((elem2) => {
-        if (!paths1.has(elem2.path)) {
-          comparisonResults.push({
-            path: elem2.path,
-            status: 'missing-in-xml1',
-            xml1Value: '-',
-            xml2Value: elem2.value || JSON.stringify(elem2.attributes),
-            message: 'Present in XML 2 only'
+          
+          const doc1 = parseXML(xml1);
+          const doc2 = parseXML(xml2);
+          
+          const elements1 = extractElements(doc1.documentElement);
+          const elements2 = extractElements(doc2.documentElement);
+          
+          const comparisonResults = [];
+          const paths1 = new Set(elements1.map((e) => e.path));
+          const paths2 = new Set(elements2.map((e) => e.path));
+          
+          elements1.forEach((elem1) => {
+            const elem2 = elements2.find((e) => e.path === elem1.path);
+            
+            if (!elem2) {
+              comparisonResults.push({
+                path: elem1.path,
+                status: 'missing-in-xml2',
+                xml1Value: elem1.value || JSON.stringify(elem1.attributes),
+                xml2Value: '-',
+                message: 'Present in XML 1 only'
+              });
+            } else {
+              const value1 = elem1.value || JSON.stringify(elem1.attributes);
+              const value2 = elem2.value || JSON.stringify(elem2.attributes);
+              
+              if (value1 === value2) {
+                comparisonResults.push({
+                  path: elem1.path,
+                  status: 'match',
+                  xml1Value: value1,
+                  xml2Value: value2,
+                  message: 'Match'
+                });
+              } else {
+                comparisonResults.push({
+                  path: elem1.path,
+                  status: 'different',
+                  xml1Value: value1,
+                  xml2Value: value2,
+                  message: 'Different values'
+                });
+              }
+            }
           });
+          
+          elements2.forEach((elem2) => {
+            if (!paths1.has(elem2.path)) {
+              comparisonResults.push({
+                path: elem2.path,
+                status: 'missing-in-xml1',
+                xml1Value: '-',
+                xml2Value: elem2.value || JSON.stringify(elem2.attributes),
+                message: 'Present in XML 2 only'
+              });
+            }
+          });
+          
+          setResults(comparisonResults);
+          
+        } catch (err) {
+          setError(err.message || 'Error parsing XML');
         }
-      });
-      
-      setResults(comparisonResults);
-      
-    } catch (err) {
-      setError(err.message || 'Error parsing XML');
-    }
-  };
+      };
 
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'match':
-        return <CheckCircle className="w-5 h-5 text-green-600" />;
-      case 'different':
-        return <AlertCircle className="w-5 h-5 text-yellow-600" />;
-      case 'missing-in-xml1':
-      case 'missing-in-xml2':
-        return <XCircle className="w-5 h-5 text-red-600" />;
-      default:
-        return <MinusCircle className="w-5 h-5 text-gray-400" />;
-    }
-  };
+      const getStatusIcon = (status) => {
+        switch (status) {
+          case 'match':
+            return React.createElement(CheckCircle, { className: "w-5 h-5 text-green-600" });
+          case 'different':
+            return React.createElement(AlertCircle, { className: "w-5 h-5 text-yellow-600" });
+          case 'missing-in-xml1':
+          case 'missing-in-xml2':
+            return React.createElement(XCircle, { className: "w-5 h-5 text-red-600" });
+          default:
+            return React.createElement(MinusCircle, { className: "w-5 h-5 text-gray-400" });
+        }
+      };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'match':
-        return 'bg-green-50';
-      case 'different':
-        return 'bg-yellow-50';
-      case 'missing-in-xml1':
-      case 'missing-in-xml2':
-        return 'bg-red-50';
-      default:
-        return 'bg-gray-50';
-    }
-  };
+      const getStatusColor = (status) => {
+        switch (status) {
+          case 'match':
+            return 'bg-green-50';
+          case 'different':
+            return 'bg-yellow-50';
+          case 'missing-in-xml1':
+          case 'missing-in-xml2':
+            return 'bg-red-50';
+          default:
+            return 'bg-gray-50';
+        }
+      };
 
-  const stats = {
-    matches: results.filter((r) => r.status === 'match').length,
-    differences: results.filter((r) => r.status === 'different').length,
-    missingInXml1: results.filter((r) => r.status === 'missing-in-xml1').length,
-    missingInXml2: results.filter((r) => r.status === 'missing-in-xml2').length
-  };
+      const stats = {
+        matches: results.filter((r) => r.status === 'match').length,
+        differences: results.filter((r) => r.status === 'different').length,
+        missingInXml1: results.filter((r) => r.status === 'missing-in-xml1').length,
+        missingInXml2: results.filter((r) => r.status === 'missing-in-xml2').length
+      };
 
-  return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">XML Comparison Tool</h1>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              XML Document 1
-            </label>
-            <div
-              className={`relative border-2 border-dashed rounded-lg p-4 transition-colors ${
-                dragOver1 ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-white'
-              }`}
-              onDrop={(e) => handleDrop(e, setXml1)}
-              onDragOver={handleDragOver}
-              onDragEnter={(e) => handleDragEnter(e, setDragOver1)}
-              onDragLeave={(e) => handleDragLeave(e, setDragOver1)}
-            >
-              <textarea
-                className="w-full h-48 p-3 border-0 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 resize-none"
-                placeholder="Paste XML here or drag and drop an XML file..."
-                value={xml1}
-                onChange={(e) => setXml1(e.target.value)}
-              />
-              <div className="mt-2 text-center">
-                <label className="cursor-pointer inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
-                  <span className="text-sm">Or click to browse files</span>
-                  <input
-                    type="file"
-                    accept=".xml"
-                    className="hidden"
-                    onChange={(e) => handleFileSelect(e, setXml1)}
-                  />
+      return (
+        <div className="min-h-screen bg-gray-50 p-6">
+          <div className="max-w-7xl mx-auto">
+            <h1 className="text-3xl font-bold text-gray-900 mb-6">XML Comparison Tool</h1>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  XML Document 1
                 </label>
-              </div>
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              XML Document 2
-            </label>
-            <div
-              className={`relative border-2 border-dashed rounded-lg p-4 transition-colors ${
-                dragOver2 ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-white'
-              }`}
-              onDrop={(e) => handleDrop(e, setXml2)}
-              onDragOver={handleDragOver}
-              onDragEnter={(e) => handleDragEnter(e, setDragOver2)}
-              onDragLeave={(e) => handleDragLeave(e, setDragOver2)}
-            >
-              <textarea
-                className="w-full h-48 p-3 border-0 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 resize-none"
-                placeholder="Paste XML here or drag and drop an XML file..."
-                value={xml2}
-                onChange={(e) => setXml2(e.target.value)}
-              />
-              <div className="mt-2 text-center">
-                <label className="cursor-pointer inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
-                  <span className="text-sm">Or click to browse files</span>
-                  <input
-                    type="file"
-                    accept=".xml"
-                    className="hidden"
-                    onChange={(e) => handleFileSelect(e, setXml2)}
+                <div
+                  className={`relative border-2 border-dashed rounded-lg p-4 transition-colors ${
+                    dragOver1 ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-white'
+                  }`}
+                  onDrop={(e) => handleDrop(e, setXml1)}
+                  onDragOver={handleDragOver}
+                  onDragEnter={(e) => handleDragEnter(e, setDragOver1)}
+                  onDragLeave={(e) => handleDragLeave(e, setDragOver1)}
+                >
+                  <textarea
+                    className="w-full h-48 p-3 border-0 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 resize-none"
+                    placeholder="Paste XML here or drag and drop an XML file..."
+                    value={xml1}
+                    onChange={(e) => setXml1(e.target.value)}
                   />
+                  <div className="mt-2 text-center">
+                    <label className="cursor-pointer inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
+                      <span className="text-sm">Or click to browse files</span>
+                      <input
+                        type="file"
+                        accept=".xml"
+                        className="hidden"
+                        onChange={(e) => handleFileSelect(e, setXml1)}
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  XML Document 2
                 </label>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
-          <button
-            onClick={compareXML}
-            className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Compare XML Documents
-          </button>
-          
-          <button
-            onClick={loadSampleData}
-            className="px-6 py-3 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors"
-          >
-            Load Sample Data
-          </button>
-        </div>
-        
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-            {error}
-          </div>
-        )}
-        
-        {results.length > 0 && (
-          <>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-white p-4 rounded-lg shadow">
-                <div className="flex items-center gap-2 mb-1">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
-                  <span className="text-sm font-medium text-gray-600">Matches</span>
+                <div
+                  className={`relative border-2 border-dashed rounded-lg p-4 transition-colors ${
+                    dragOver2 ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-white'
+                  }`}
+                  onDrop={(e) => handleDrop(e, setXml2)}
+                  onDragOver={handleDragOver}
+                  onDragEnter={(e) => handleDragEnter(e, setDragOver2)}
+                  onDragLeave={(e) => handleDragLeave(e, setDragOver2)}
+                >
+                  <textarea
+                    className="w-full h-48 p-3 border-0 rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 resize-none"
+                    placeholder="Paste XML here or drag and drop an XML file..."
+                    value={xml2}
+                    onChange={(e) => setXml2(e.target.value)}
+                  />
+                  <div className="mt-2 text-center">
+                    <label className="cursor-pointer inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors">
+                      <span className="text-sm">Or click to browse files</span>
+                      <input
+                        type="file"
+                        accept=".xml"
+                        className="hidden"
+                        onChange={(e) => handleFileSelect(e, setXml2)}
+                      />
+                    </label>
+                  </div>
                 </div>
-                <div className="text-2xl font-bold text-gray-900">{stats.matches}</div>
-              </div>
-              
-              <div className="bg-white p-4 rounded-lg shadow">
-                <div className="flex items-center gap-2 mb-1">
-                  <AlertCircle className="w-5 h-5 text-yellow-600" />
-                  <span className="text-sm font-medium text-gray-600">Differences</span>
-                </div>
-                <div className="text-2xl font-bold text-gray-900">{stats.differences}</div>
-              </div>
-              
-              <div className="bg-white p-4 rounded-lg shadow">
-                <div className="flex items-center gap-2 mb-1">
-                  <XCircle className="w-5 h-5 text-red-600" />
-                  <span className="text-sm font-medium text-gray-600">Missing in XML 1</span>
-                </div>
-                <div className="text-2xl font-bold text-gray-900">{stats.missingInXml1}</div>
-              </div>
-              
-              <div className="bg-white p-4 rounded-lg shadow">
-                <div className="flex items-center gap-2 mb-1">
-                  <XCircle className="w-5 h-5 text-red-600" />
-                  <span className="text-sm font-medium text-gray-600">Missing in XML 2</span>
-                </div>
-                <div className="text-2xl font-bold text-gray-900">{stats.missingInXml2}</div>
               </div>
             </div>
             
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-100 border-b border-gray-200">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Element Path</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">XML 1 Value</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">XML 2 Value</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Message</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {results.map((result, index) => (
-                      <tr key={index} className={`border-b border-gray-200 ${getStatusColor(result.status)}`}>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center justify-center">
-                            {getStatusIcon(result.status)}
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-sm font-mono text-gray-900">{result.path}</td>
-                        <td className="px-4 py-3 text-sm text-gray-700 max-w-xs truncate">{result.xml1Value}</td>
-                        <td className="px-4 py-3 text-sm text-gray-700 max-w-xs truncate">{result.xml2Value}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{result.message}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <div className="flex flex-col sm:flex-row gap-3 mb-6">
+              <button
+                onClick={compareXML}
+                className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Compare XML Documents
+              </button>
+              
+              <button
+                onClick={loadSampleData}
+                className="px-6 py-3 bg-gray-600 text-white font-medium rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Load Sample Data
+              </button>
             </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
+            
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+                {error}
+              </div>
+            )}
+            
+            {results.length > 0 && (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-white p-4 rounded-lg shadow">
+                    <div className="flex items-center gap-2 mb-1">
+                      {React.createElement(CheckCircle, { className: "w-5 h-5 text-green-600" })}
+                      <span className="text-sm font-medium text-gray-600">Matches</span>
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900">{stats.matches}</div>
+                  </div>
+                  
+                  <div className="bg-white p-4 rounded-lg shadow">
+                    <div className="flex items-center gap-2 mb-1">
+                      {React.createElement(AlertCircle, { className: "w-5 h-5 text-yellow-600" })}
+                      <span className="text-sm font-medium text-gray-600">Differences</span>
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900">{stats.differences}</div>
+                  </div>
+                  
+                  <div className="bg-white p-4 rounded-lg shadow">
+                    <div className="flex items-center gap-2 mb-1">
+                      {React.createElement(XCircle, { className: "w-5 h-5 text-red-600" })}
+                      <span className="text-sm font-medium text-gray-600">Missing in XML 1</span>
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900">{stats.missingInXml1}</div>
+                  </div>
+                  
+                  <div className="bg-white p-4 rounded-lg shadow">
+                    <div className="flex items-center gap-2 mb-1">
+                      {React.createElement(XCircle, { className: "w-5 h-5 text-red-600" })}
+                      <span className="text-sm font-medium text-gray-600">Missing in XML 2</span>
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900">{stats.missingInXml2}</div>
+                  </div>
+                </div>
+                
+                <div className="bg-white rounded-lg shadow overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-100 border-b border-gray-200">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Element Path</th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">XML 1 Value</th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">XML 2 Value</th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Message</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {results.map((result, index) => (
+                          <tr key={index} className={`border-b border-gray-200 ${getStatusColor(result.status)}`}>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center justify-center">
+                                {getStatusIcon(result.status)}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-sm font-mono text-gray-900">{result.path}</td>
+                            <td className="px-4 py-3 text-sm text-gray-700 max-w-xs truncate">{result.xml1Value}</td>
+                            <td className="px-4 py-3 text-sm text-gray-700 max-w-xs truncate">{result.xml2Value}</td>
+                            <td className="px-4 py-3 text-sm text-gray-600">{result.message}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(XMLComparison));
+  </script>
+</body>
+</html>
