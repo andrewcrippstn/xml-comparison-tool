@@ -137,11 +137,23 @@
         return xmlDoc;
       };
 
-      const extractElements = (node, path = '') => {
+      const extractElements = (node, path = '', siblingCounts = {}) => {
         const elements = [];
         
         if (node.nodeType === 1) {
-          const currentPath = path ? `${path}/${node.nodeName}` : node.nodeName;
+          // Count this node type at this level
+          const parentPath = path || 'root';
+          if (!siblingCounts[parentPath]) {
+            siblingCounts[parentPath] = {};
+          }
+          if (!siblingCounts[parentPath][node.nodeName]) {
+            siblingCounts[parentPath][node.nodeName] = 0;
+          }
+          const index = siblingCounts[parentPath][node.nodeName]++;
+          
+          // Create unique path with index
+          const currentPath = path ? `${path}/${node.nodeName}[${index}]` : node.nodeName;
+          
           const textContent = Array.from(node.childNodes)
             .filter((child) => child.nodeType === 3)
             .map((child) => child.nodeValue.trim())
@@ -158,8 +170,10 @@
             }, {})
           });
           
+          // Process children with their own sibling counts
+          const childSiblingCounts = {};
           Array.from(node.children).forEach((child) => {
-            elements.push(...extractElements(child, currentPath));
+            elements.push(...extractElements(child, currentPath, childSiblingCounts));
           });
         }
         
